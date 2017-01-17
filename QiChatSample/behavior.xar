@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3">
+    <Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0">
+        <bitmap>media/images/box/root.png</bitmap>
+        <script language="4">
+            <content>
+                <![CDATA[]]>
+</content>
+        </script>
+        <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+        <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+        <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+        <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="ボックスBehaviorの終了時に信号を送る。" id="4" />
+        <Timeline enable="0">
+            <BehaviorLayer name="behavior_layer1">
+                <BehaviorKeyframe name="keyframe1" index="1">
+                    <Diagram>
+                        <Box name="bx_データ読み込み" id="1" localization="8" tooltip="This box contains a basic python script and can be used to create any python script box you would like.&#x0A;&#x0A;To edit its script, double-click on it." x="91" y="15">
+                            <bitmap>media/images/box/box-python-script.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        pass
+
+    def onLoad(self):
+        #put initialization code here
+        self.memory = ALProxy("ALMemory")
+        self.framemanager = ALProxy("ALFrameManager")
+
+    def onUnload(self):
+        self.memory = None
+        self.framemanager = None
+
+    def onInput_onStart(self):
+        #self.onStopped() #activate the output of the box
+
+        fileName = self.framemanager.getBehaviorPath(self.behaviorId) + "/init_data.json"
+        try:
+            import json
+            with open(fileName, 'r') as f:
+                init_data = json.load(f)
+                self.memory.insertData("QiChatSample/InitData", json.dumps(init_data))
+                self.onStopped()
+        except Exception as e:
+            self.logger.error('Failed to read data')
+            self.logger.error('message:' + str(e))
+            raise Exception, e
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped() #activate the output of the box]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="" id="5" />
+                        </Box>
+                        <Box name="bx_ダイアログ設定_日本語用" id="4" localization="8" tooltip="ダイアログの設定&#x0A;日本語用" x="236" y="18">
+                            <bitmap>media/images/box/box-python-script.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        pass
+
+    def onUnload(self):
+        pass
+
+    def onInput_onStart(self):
+
+        memory = ALProxy("ALMemory")
+
+        #言語設定
+        try:
+            tts = ALProxy("ALTextToSpeech")
+        except:
+            self.logger.warn("ALTextToSpeech is not available, language setting cannot be applied to speech")
+            tts = None
+
+        try:
+            asr = ALProxy("ALSpeechRecognition")
+        except:
+            self.logger.warn("ALSpeechRecognition is not available, language setting cannot be applied to recognition")
+            asr = None
+
+        try:
+            dialog = ALProxy("ALDialog")
+        except:
+            self.logger.warn("ALDialog is not available, language setting cannot be applied to dialog")
+            dialog = None
+
+        lang = "Japanese"
+        try:
+            if asr:
+                asr.setLanguage( lang )
+            if tts:
+                tts.setLanguage( lang )
+            if dialog:
+                dialog.setLanguage( lang )
+            if tts is None and asr is None and dialog is None:
+                raise RuntimeError("Cannot set language: neither ALTextToSpeech nor ALSpeechRecognition nor ALDialog is available.")
+        except:
+            error = "Language " + lang + " cannot be set."
+            self.logger.warn(error)
+
+        try:
+            #Dialog 閾値の変更
+            dialog.setConfidenceThreshold("BNF", self.getParameter("ConfidenceThreshold"))
+            dialog.setConfidenceThreshold("SLM", self.getParameter("ConfidenceThreshold"))
+        except Exception as e:
+            raise Exception, e
+
+        #Dialog setConsept
+        try:
+            #外部データの取得
+            data = memory.getData("QiChatSample/InitData")
+            initdata = json.loads(data)
+
+            #リストに変換
+            dy_ans_1=initdata["ans_1"]["concept"].encode("utf-8").split(",")
+            dy_ans_2=initdata["ans_2"]["concept"].encode("utf-8").split(",")
+            dy_ans_3=initdata["ans_3"]["concept"].encode("utf-8").split(",")
+
+            #QiChatのスクリプトでdynamicで指定した名前でセットする
+            dialog.setConcept("dy_ans_1", "jpj", dy_ans_1)
+            dialog.setConcept("dy_ans_2", "jpj", dy_ans_2)
+            dialog.setConcept("dy_ans_3", "jpj", dy_ans_3)
+
+        except Exception as e:
+            raise Exception, e
+
+        #QiChatに定義したメッセージ変数のセット
+        memory.insertData("QiChatSample/onStartMessage", initdata["onStartMessage"].encode("utf-8"))
+        memory.insertData("QiChatSample/stayMessage", initdata["stayMessage"].encode("utf-8"))
+        memory.insertData("QiChatSample/dyAns1Message", initdata["ans_1"]["message"].encode("utf-8"))
+        memory.insertData("QiChatSample/dyAns2Message", initdata["ans_2"]["message"].encode("utf-8"))
+        memory.insertData("QiChatSample/dyAns3Message", initdata["ans_3"]["message"].encode("utf-8"))
+        memory.insertData("QiChatSample/endMessage", initdata["endMessage"].encode("utf-8"))
+
+        self.onStopped()
+
+    def onInput_onStop(self):
+        self.onUnload() #it is recommended to reuse the clean-up as the box is stopped
+        self.onStopped() #activate the output of the box]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Parameter name="ConfidenceThreshold" inherits_from_parent="0" content_type="2" value="0.35" default_value="0.4" min="0" max="1" tooltip="" id="5" />
+                        </Box>
+                        <Box name="QiChat" id="2" localization="8" tooltip="" x="375" y="20">
+                            <dialogFile>QiChat/QiChat.dlg</dialogFile>
+                            <bitmap>media/images/box/box-dialog.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="ボックスBehaviorの終了時に信号を送る。" id="4" />
+                            <Output name="output" type="3" type_size="1" nature="2" inner="0" tooltip="" id="5" />
+                        </Box>
+                        <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="4" indexofinput="2" outputowner="1" indexofoutput="4" />
+                        <Link inputowner="2" indexofinput="2" outputowner="4" indexofoutput="4" />
+                        <Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" />
+                    </Diagram>
+                </BehaviorKeyframe>
+            </BehaviorLayer>
+        </Timeline>
+    </Box>
+</ChoregrapheProject>

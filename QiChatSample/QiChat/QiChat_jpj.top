@@ -1,0 +1,14 @@
+topic: ~QiChat()
+language: jpj
+
+dynamic:dy_ans_1
+dynamic:dy_ans_2
+dynamic:dy_ans_3
+
+u:(e:onStart) ^mode(contextual) $QiChatSample/onStartMessage
+    u1:(~dy_ans_1) $QiChatSample/dyAns1Message $output="dy_ans_1" \pau=200\ $QiChatSample/endMessage $onStopped=1
+    u1:(~dy_ans_2) $QiChatSample/dyAns2Message $output="dy_ans_2" \pau=200\ $QiChatSample/endMessage $onStopped=1
+    u1:(~dy_ans_3) $QiChatSample/dyAns3Message $output="dy_ans_3" \pau=200\ $QiChatSample/endMessage $onStopped=1
+    u1:(e:Dialog/NotUnderstood) $QiChatSample/stayMessage ^stayInScope
+
+u:(e:FrontTactilTouched) $QiChatSample/endMessage $onStopped=1
